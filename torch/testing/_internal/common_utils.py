@@ -691,6 +691,7 @@ def run_tests(argv=UNITTEST_ARGS):
             os.environ["NO_COLOR"] = "1"
             pytest.main(args=[inspect.getfile(sys._getframe(1)), '--durations=0', '-s', '-vv', f'--junitxml={test_report_path}.xml'])
         else:
+            exit(0)
             unittest.main(argv=argv, testRunner=xmlrunner.XMLTestRunner(
                 output=test_report_path,
                 verbosity=2 if verbose else 1,
@@ -1474,7 +1475,12 @@ def check_if_enable(test: unittest.TestCase):
     if "__main__" not in test_suite:
         # this probably means it is being run via pytest
         test_suite = f"__main__.{test_suite.split('.')[1]}"
+    print(test_suite)
     raw_test_name = f'{test._testMethodName} ({test_suite})'
+    print(raw_test_name)
+    print(slow_tests_dict is not None)
+    print(TEST_WITH_SLOW)
+    print(IMPORT_SLOW_TESTS)
     if slow_tests_dict is not None and raw_test_name in slow_tests_dict:
         getattr(test, test._testMethodName).__dict__['slow_test'] = True
         if not TEST_WITH_SLOW:
