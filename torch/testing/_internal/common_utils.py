@@ -689,7 +689,7 @@ def run_tests(argv=UNITTEST_ARGS):
             subprocess.run([sys.executable, "-m", "pip", "install", "pytest", "pytest-xdist"])
             import pytest
             os.environ["NO_COLOR"] = "1"
-            pytest.main(args=[inspect.getfile(sys._getframe(1)), '--durations=0', '-n=2', '-vv', f'--junitxml={test_report_path}.xml'])
+            pytest.main(args=[inspect.getfile(sys._getframe(1)), '--durations=0', '-s', '-vv', f'--junitxml={test_report_path}.xml'])
         else:
             unittest.main(argv=argv, testRunner=xmlrunner.XMLTestRunner(
                 output=test_report_path,
@@ -1470,6 +1470,7 @@ def remove_device_and_dtype_suffixes(test_name: str) -> str:
 
 def check_if_enable(test: unittest.TestCase):
     test_suite = str(test.__class__).split('\'')[1]
+    print(f"cats logging {test_suite}")
     if "__main__" not in test_suite:
         # this probably means it is being run via pytest
         test_suite = f"__main__.{test_suite.split('.')[1]}"
