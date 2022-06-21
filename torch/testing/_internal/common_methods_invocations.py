@@ -1935,6 +1935,32 @@ def sample_inputs_nn_functional_prelu(op_info, device, dtype, requires_grad, **k
     yield SampleInput(make_arg((S, S)), kwargs=dict(weight=weight_tensor,))
     yield SampleInput(make_arg((S, S)), kwargs=dict(weight=make_arg((S,)),))
 
+def sample_kwargs_prelu_scalar_weight(device, dtype, input):
+    dtype = torch.float32 if dtype == torch.bfloat16 else dtype
+    weight = torch.rand(tuple(), device=device, dtype=dtype)
+    np_weight = weight.numpy()
+    return ({'weight': weight}, {'weight': np_weight})
+
+def error_inputs_prelu(op, device):
+    # Weight has numel != 1, but self.ndim is zero-dim tensor
+    inp = make_tensor(tuple(), device=device, dtype=torch.float32)
+    weight = make_tensor((2,), device=device, dtype=torch.float32)
+    yield ErrorInput(SampleInput(inp, kwargs={'weight': weight}),
+                     error_regex="Not allow zero-dim input tensor.")
+
+    # Weight has numel != 1, but numel does not match channel size
+    inp = make_tensor((2, 8, 3), device=device, dtype=torch.float32)
+    weight = make_tensor((9,), device=device, dtype=torch.float32)
+    yield ErrorInput(SampleInput(inp, kwargs={'weight': weight}),
+                     error_regex="Mismatch of parameter numbers and input channel size.")
+
+    # Weight is neither a scalar nor 1-D tensor
+    inp = make_tensor((2, 8, 3), device=device, dtype=torch.float32)
+    weight = make_tensor((2, 4), device=device, dtype=torch.float32)
+    yield ErrorInput(SampleInput(inp, kwargs={'weight': weight}),
+                     error_regex="prelu: Expected `weight` to be a scalar or 1D tensor, but got ndim = 2")
+
+    # src and index tensors must have the same # of dimensions
 def sample_inputs_norm(op_info, device, dtype, requires_grad, **kwargs):
     make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=requires_grad)
 
@@ -14390,7 +14416,7 @@ op_db: List[OpInfo] = [
                 'TestUnaryUfuncs', device_type='cuda',
             ), ],
     ),
-    OpInfo(
+    UnaryUfuncInfo(
         'nn.functional.prelu',
         aten_backward_name='prelu_backward',
         ref=lambda x, weight:
@@ -14404,6 +14430,9 @@ op_db: List[OpInfo] = [
         assert_autodiffed=False,
         supports_gradgrad=True,
         supports_out=False,
+        # test_reference_numerics only tests the case when the weight tensor is a scalar
+        sample_kwargs=sample_kwargs_prelu_scalar_weight,
+        error_inputs_func=error_inputs_prelu,
         sample_inputs_func=sample_inputs_nn_functional_prelu,
         decorators=[
             # FIXME: second derivative is implemented but seems to be incorrect
@@ -20260,6 +20289,17 @@ python_ref_db = [
         skips=(
             # RuntimeError: Tracing expected 3 arguments but got 1 concrete arguments
             DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_executor'),
+        ),
+    ),
+    ElementwiseUnaryPythonRefInfo(
+        "_refs.nn.functional.prelu",
+        torch_opinfo_name="nn.functional.prelu",
+        skips=(
+            # NumPy does not support bfloat16
+            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref',
+                         dtypes=(torch.bfloat16,)),
+            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_python_ref_torch_fallback',
+                         dtypes=(torch.bfloat16,)),
         ),
     ),
     ElementwiseUnaryPythonRefInfo(
