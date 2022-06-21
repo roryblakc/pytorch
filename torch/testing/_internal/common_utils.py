@@ -1470,11 +1470,16 @@ def remove_device_and_dtype_suffixes(test_name: str) -> str:
 
 def check_if_enable(test: unittest.TestCase):
     test_suite = str(test.__class__).split('\'')[1]
-    print(f"cats logging {test_suite}")
+    print(f"cats logging {test_suite}", file=sys.stderr)
     if "__main__" not in test_suite:
         # this probably means it is being run via pytest
         test_suite = f"__main__.{test_suite.split('.')[1]}"
+    print(test_suite, file=sys.stderr)
     raw_test_name = f'{test._testMethodName} ({test_suite})'
+    print(raw_test_name, file=sys.stderr)
+    print(slow_tests_dict is not None, file=sys.stderr)
+    print(slow_tests_dict, file=sys.stderr)
+    print(TEST_WITH_SLOW, file=sys.stderr)
     if slow_tests_dict is not None and raw_test_name in slow_tests_dict:
         getattr(test, test._testMethodName).__dict__['slow_test'] = True
         if not TEST_WITH_SLOW:
