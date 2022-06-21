@@ -3,6 +3,7 @@ from torch.testing._internal.common_utils import run_tests, TestCase
 import unittest
 import torch
 from torch.utils._pytree import tree_map
+import torch._decomp
 aten = torch.ops.aten
 
 try:
@@ -73,6 +74,7 @@ class PySymInt(object):
         return f"PySymInt({self.expr})"
 
     def __int__(self):
+        import pdb; pdb.set_trace()
         return self.shape_env.evaluate_expr(self.expr)
 
     def __bool__(self):
@@ -172,5 +174,8 @@ from torch._subclasses.fake_tensor import FakeTensorMode
 shape_env = ShapeEnv()
 foo = torch.empty(shape_env.create_symint("foo", 3), device='meta')
 # import pdb; pdb.set_trace()
-test = FakeTensor(FakeTensorMode(), foo, 'cuda')
-print((test.cos()).shape)
+fake_tensor_mode = FakeTensorMode()
+test = FakeTensor(fake_tensor_mode, foo, 'cuda')
+with fake_tensor_mode:
+    print(torch.cat([test, test]).shape)
+print(shape_env.guards)
