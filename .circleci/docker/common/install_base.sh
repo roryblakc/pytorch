@@ -46,6 +46,7 @@ install_ubuntu() {
     libatlas-base-dev \
     libc6-dbg \
     ${maybe_libiomp_dev} \
+    libomp-dev \
     libyaml-dev \
     libz-dev \
     libjpeg-dev \
